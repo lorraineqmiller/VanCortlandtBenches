@@ -8,9 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 ON_VERCEL = bool(os.environ.get("VERCEL"))
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "0" if ON_VERCEL else "1") == "1"
+# Empty when DEBUG is off and unset: settings still load (Vercel reads them at build
+# time), but Django refuses to sign sessions or cookies until DJANGO_SECRET_KEY is set.
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or ("dev-only-not-secret" if DEBUG else "")
-if not SECRET_KEY:
-    raise RuntimeError("Set DJANGO_SECRET_KEY when DEBUG is off.")
 
 ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",") if h]
 ALLOWED_HOSTS += [
