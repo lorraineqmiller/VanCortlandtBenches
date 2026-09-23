@@ -93,6 +93,12 @@ def adopt(bench: Bench, donor_data: dict, term_years: int, start: datetime.date 
 
     try:
         with transaction.atomic():
+            # Lock the bench row so simultaneous requests for one bench queue up here.
+            # Without this, several racing inserts can deadlock inside the exclusion
+            # constraint check instead of failing cleanly.
+            Bench.objects.select_for_update().only("pk").get(pk=bench.pk)
+            if _overlaps(bench, start, end):
+                raise BenchUnavailable(f"{bench.plaque_code} was just adopted by someone else.")
             donor = Donor.objects.create(
                 full_name=donor_data["full_name"],
                 email=donor_data["email"],
@@ -109,6 +115,12 @@ def adopt(bench: Bench, donor_data: dict, term_years: int, start: datetime.date 
         if _constraint_name(exc) == EXCLUSION_CONSTRAINT:
             raise BenchUnavailable(f"{bench.plaque_code} was just adopted by someone else.") from exc
         raise
+
+
+def _overlaps(bench: Bench, start: datetime.date, end: datetime.date) -> bool:
+    return Adoption.objects.filter(
+        bench=bench, status=Adoption.Status.ACTIVE, start_date__lt=end, end_date__gt=start
+    ).exists()
 
 
 def _constraint_name(exc: IntegrityError) -> str | None:

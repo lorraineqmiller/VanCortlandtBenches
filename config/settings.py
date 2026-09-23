@@ -1,11 +1,26 @@
 import os
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-not-secret")
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+# Vercel sets VERCEL=1 plus the hostnames it serves each deployment on.
+ON_VERCEL = bool(os.environ.get("VERCEL"))
+
+DEBUG = os.environ.get("DJANGO_DEBUG", "0" if ON_VERCEL else "1") == "1"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or ("dev-only-not-secret" if DEBUG else "")
+if not SECRET_KEY:
+    raise RuntimeError("Set DJANGO_SECRET_KEY when DEBUG is off.")
+
+ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",") if h]
+ALLOWED_HOSTS += [
+    os.environ[k] for k in ("VERCEL_URL", "VERCEL_BRANCH_URL", "VERCEL_PROJECT_PRODUCTION_URL") if os.environ.get(k)
+]
+CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1", "0.0.0.0")]
+if ON_VERCEL:
+    # Vercel terminates HTTPS and forwards plain HTTP.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = True
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -20,6 +35,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -47,8 +63,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+
+
+def _database_from_url(url):
+    """DATABASE_URL / POSTGRES_URL as set by Vercel's Postgres integrations (e.g. Neon)."""
+    u = urlparse(url)
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": u.path.lstrip("/"),
+        "USER": unquote(u.username or ""),
+        "PASSWORD": unquote(u.password or ""),
+        "HOST": u.hostname,
+        "PORT": str(u.port or 5432),
+        "OPTIONS": dict(parse_qsl(u.query)),  # e.g. sslmode=require
+    }
+
+
+_db_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
 DATABASES = {
-    "default": {
+    "default": _database_from_url(_db_url) if _db_url else {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB", "benches"),
         "USER": os.environ.get("POSTGRES_USER", "benches"),
@@ -67,4 +100,6 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Serve static files from the app directories, so no collectstatic step is needed at deploy time.
+WHITENOISE_USE_FINDERS = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
