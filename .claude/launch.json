@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "benches",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c", "POSTGRES_PORT=5433 .venv/bin/python manage.py runserver 8000"],
+      "port": 8000
+    }
+  ]
+}

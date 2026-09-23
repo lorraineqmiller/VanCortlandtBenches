@@ -1,0 +1,55 @@
+{% extends "benches/base.html" %}
+{% block title %}{{ bench.plaque_code }}{% endblock %}
+{% block content %}
+  <p class="crumbs"><a href="{% url 'bench_list' %}">← All benches</a></p>
+  <h1>Bench {{ bench.plaque_code }}</h1>
+  <div class="card">
+    <dl class="facts">
+      <dt>Area</dt><dd>{{ bench.area }}</dd>
+      <dt>Location</dt><dd>{{ bench.location_description }}</dd>
+      <dt>Status</dt>
+      <dd>
+        {% if current %}<span class="status status-adopted">Adopted</span>
+        {% elif bench.condition == "under_repair" %}<span class="status status-under-repair">Under repair</span>
+        {% else %}<span class="status status-available">Available</span>{% endif %}
+      </dd>
+      {% if current %}
+      <dt>Adopted by</dt><dd>{{ current.donor.public_display_name }}</dd>
+      <dt>Term ends</dt><dd>{{ current.end_date|date:"F j, Y" }}</dd>
+      {% if current.dedication_text %}<dt>Dedication</dt><dd class="dedication">“{{ current.dedication_text }}”</dd>{% endif %}
+      {% endif %}
+    </dl>
+  </div>
+
+  {% if conflict %}
+  <div class="alert" role="alert">
+    <strong>Sorry, this bench is no longer available.</strong> {{ conflict }} Your details were not saved.
+    <a href="{% url 'bench_list' %}?available=1">See available benches</a>.
+  </div>
+  {% endif %}
+
+  {% if available %}
+  <section class="card">
+    <h2>Adopt this bench</h2>
+    <p>Your adoption starts today. Your display name and dedication appear publicly; your name and email do not.</p>
+    <form method="post" class="adopt-form" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}
+      <div class="field{% if field.errors %} has-error{% endif %}">
+        {% if field.name == "term_years" %}
+          <fieldset><legend>{{ field.label }}</legend>{{ field }}</fieldset>
+        {% else %}
+          {{ field.label_tag }}{{ field }}
+        {% endif %}
+        {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
+        {% for e in field.errors %}<p class="error">{{ e }}</p>{% endfor %}
+      </div>
+      {% endfor %}
+      <button type="submit">Adopt {{ bench.plaque_code }}</button>
+    </form>
+  </section>
+  {% elif not conflict and bench.condition == "under_repair" %}
+  <p>This bench is under repair and can't be adopted right now.</p>
+  {% endif %}
+{% endblock %}

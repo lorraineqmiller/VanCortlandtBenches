@@ -1,0 +1,60 @@
+{% extends "benches/base.html" %}
+{% load static %}
+{% block title %}Benches{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+{% endblock %}
+{% block content %}
+  <h1>Adopt a bench</h1>
+  <p class="lead">Every bench in the park, who has adopted it, and until when. Pick an available bench to adopt it yourself.</p>
+
+  <form class="filters" method="get">
+    <label>Area
+      <select name="area">
+        <option value="">All areas</option>
+        {% for a in areas %}<option value="{{ a }}"{% if a == filters.area %} selected{% endif %}>{{ a }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="check"><input type="checkbox" name="available" value="1"{% if filters.available_only %} checked{% endif %}> Available only</label>
+    <button type="submit">Apply</button>
+    {% if filters.area or filters.available_only %}<a href="{% url 'bench_list' %}">Clear</a>{% endif %}
+  </form>
+
+  <div id="map" class="map" data-geojson="{% url 'benches_geojson' %}?{{ filter_query }}" aria-label="Map of benches"></div>
+  <p class="legend"><span class="dot available"></span> Available <span class="dot adopted"></span> Adopted or under repair</p>
+
+  <p class="count">{{ page.paginator.count }} bench{{ page.paginator.count|pluralize:"es" }}{% if page.paginator.num_pages > 1 %}, showing {{ page.start_index }}–{{ page.end_index }}{% endif %}</p>
+  <div class="table-scroll">
+  <table class="benches">
+    <thead><tr><th>Bench</th><th>Area</th><th>Status</th><th>Adopted by</th><th>Term ends</th></tr></thead>
+    <tbody>
+      {% for b in page %}
+      <tr>
+        <td><a href="{% url 'bench_detail' b.plaque_code %}">{{ b.plaque_code }}</a></td>
+        <td>{{ b.area }}</td>
+        <td><span class="status status-{{ b.status|slugify }}">{{ b.status }}</span></td>
+        <td>{% if b.is_adopted %}{{ b.adopter_name }}{% endif %}</td>
+        <td>{% if b.is_adopted %}{{ b.term_end|date:"M j, Y" }}{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">No benches match these filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% if page.paginator.num_pages > 1 %}
+  <nav class="pager">
+    {% if page.has_previous %}<a href="?{{ filter_query }}&page={{ page.previous_page_number }}">← Previous</a>{% endif %}
+    <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a href="?{{ filter_query }}&page={{ page.next_page_number }}">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
+{% endblock %}
+{% block scripts %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+  <script src="{% static 'benches/map.js' %}"></script>
+{% endblock %}

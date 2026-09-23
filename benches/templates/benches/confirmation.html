@@ -1,0 +1,15 @@
+{% extends "benches/base.html" %}
+{% block title %}Adoption confirmed{% endblock %}
+{% block content %}
+  <h1>Thank you!</h1>
+  <div class="card">
+    <p class="lead">Bench <strong>{{ adoption.bench.plaque_code }}</strong> is now adopted by {{ adoption.donor.public_display_name }}.</p>
+    <dl class="facts">
+      <dt>Location</dt><dd>{{ adoption.bench.area }} — {{ adoption.bench.location_description }}</dd>
+      <dt>Term starts</dt><dd>{{ adoption.start_date|date:"F j, Y" }}</dd>
+      <dt>Term ends</dt><dd>{{ adoption.end_date|date:"F j, Y" }}</dd>
+      {% if adoption.dedication_text %}<dt>Dedication</dt><dd class="dedication">“{{ adoption.dedication_text }}”</dd>{% endif %}
+    </dl>
+  </div>
+  <p><a href="{% url 'bench_detail' adoption.bench.plaque_code %}">View the bench</a> · <a href="{% url 'bench_list' %}">Back to all benches</a></p>
+{% endblock %}
