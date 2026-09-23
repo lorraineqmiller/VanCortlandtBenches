@@ -10,7 +10,7 @@ docker compose up --build
 
 This starts PostgreSQL, runs migrations, seeds 520 synthetic benches with adoptions, creates a staff login, and serves the app.
 
-- Public site: http://localhost:8000/
+- Public site: [http://localhost:8000/](https://van-cortlandt-benches-omega.vercel.app)
 - Staff admin: http://localhost:8000/admin/ (login `admin` / `admin`, local development only)
 
 Reseed from scratch with `docker compose exec web python manage.py seed --reset`.
