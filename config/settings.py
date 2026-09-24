@@ -103,3 +103,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # Serve static files from the app directories, so no collectstatic step is needed at deploy time.
 WHITENOISE_USE_FINDERS = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Send errors to stdout/stderr so they show up in Vercel's runtime logs even with DEBUG off.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"django": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO")}},
+}
