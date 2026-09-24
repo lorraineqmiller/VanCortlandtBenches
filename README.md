@@ -10,7 +10,7 @@ docker compose up --build
 
 This starts PostgreSQL, runs migrations, seeds 520 synthetic benches with adoptions, creates a staff login, and serves the app.
 
-- Public site: http://localhost:8000/
+- Public site: [http://localhost:8000/](https://van-cortlandt-benches-omega.vercel.app)
 - Staff admin: http://localhost:8000/admin/ (login `admin` / `admin`, local development only)
 
 Reseed from scratch with `docker compose exec web python manage.py seed --reset`.
@@ -22,16 +22,6 @@ docker compose exec web python manage.py test
 ```
 
 Without Docker: create a virtualenv, `pip install -r requirements.txt`, point `POSTGRES_HOST` / `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` at a PostgreSQL 14+ server whose user may create extensions, then `python manage.py migrate && python manage.py seed && python manage.py runserver`.
-
-### Deploy to Vercel
-
-1. Add a Postgres database to the project (Vercel dashboard → Storage, e.g. Neon). It sets `DATABASE_URL`.
-2. Set `DJANGO_SECRET_KEY` to a long random string in the project's environment variables.
-3. Create the tables and seed data once from your machine, pointing at that database:
-   `DATABASE_URL="<the Vercel value>" python manage.py migrate && DATABASE_URL="<same>" python manage.py seed`
-4. Create a staff login the same way: `DATABASE_URL="<same>" python manage.py createsuperuser`.
-
-On Vercel, `DEBUG` is off by default and the deployment's hostnames are allowed automatically. For a custom domain, add it to `DJANGO_ALLOWED_HOSTS` (comma-separated).
 
 ## Pages
 
@@ -69,8 +59,6 @@ WHERE (status = 'active')
 **Business logic lives in `benches/services.py`.** `is_available`, `benches_with_status`, and `adopt` hold the rules; views stay thin and tests exercise the rules without HTTP.
 
 **Server-rendered pages, Leaflet map.** The map uses Leaflet with OpenStreetMap tiles and marker clustering, loaded from cdnjs, with no API key. It reads `/benches.geojson`, which applies the same filters as the table. Available benches are deep sage, adopted or under-repair benches muted gray, and every popup and table row also states the status in words.
-
-**UI.** Sage theme and Bellefair type, defined once as CSS variables in `benches/static/benches/site.css`. Body text is 18px at 1.6 line height. The PRD's muted gray (#8A8F85) is below AA contrast for small text on the page background, so it is used only for map markers and a darker variant (#5E6359) is used for secondary text.
 
 ## Assumptions
 
